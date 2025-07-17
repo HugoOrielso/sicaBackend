@@ -1,0 +1,59 @@
+CREATE DATABASE IF NOT EXISTS control_cursos;
+USE control_cursos;
+
+-- Usuarios con UUID automático
+CREATE TABLE usuarios (
+    id CHAR(36) PRIMARY KEY DEFAULT (UUID()),
+    nombre VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    rol ENUM('administrador', 'docente') NOT NULL
+);
+
+-- Cursos con UUID automático
+CREATE TABLE cursos (
+    id CHAR(36) PRIMARY KEY DEFAULT (UUID()),
+    nombre VARCHAR(100) NOT NULL,
+    horario VARCHAR(100),
+    fecha_inicio DATE NOT NULL,
+    fecha_fin DATE NOT NULL,
+    docente_id CHAR(36) NOT NULL,
+    FOREIGN KEY (docente_id) REFERENCES usuarios(id)
+);
+
+-- Estudiantes con UUID automático
+CREATE TABLE estudiantes (
+    id CHAR(36) PRIMARY KEY DEFAULT (UUID()),
+    nombre VARCHAR(100) NOT NULL,
+    email VARCHAR(100) UNIQUE
+);
+
+-- Matrículas con UUID automático
+CREATE TABLE matriculas (
+    id CHAR(36) PRIMARY KEY DEFAULT (UUID()),
+    estudiante_id CHAR(36) NOT NULL,
+    curso_id CHAR(36) NOT NULL,
+    FOREIGN KEY (estudiante_id) REFERENCES estudiantes(id),
+    FOREIGN KEY (curso_id) REFERENCES cursos(id),
+    UNIQUE(estudiante_id, curso_id)
+);
+
+-- Inasistencias con UUID automático
+CREATE TABLE inasistencias (
+    id CHAR(36) PRIMARY KEY DEFAULT (UUID()),
+    estudiante_id CHAR(36) NOT NULL,
+    curso_id CHAR(36) NOT NULL,
+    fecha DATE NOT NULL,
+    justificada BOOLEAN DEFAULT FALSE,
+    FOREIGN KEY (estudiante_id) REFERENCES estudiantes(id),
+    FOREIGN KEY (curso_id) REFERENCES cursos(id)
+);
+
+
+CREATE TABLE actividades (
+  id CHAR(36) PRIMARY KEY DEFAULT (UUID()),
+  usuario_id CHAR(36) NOT NULL,
+  tipo VARCHAR(100) NOT NULL,        
+  descripcion TEXT,                   
+  fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
