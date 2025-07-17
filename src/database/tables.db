@@ -1,7 +1,6 @@
 CREATE DATABASE IF NOT EXISTS control_cursos;
 USE control_cursos;
 
--- Usuarios con UUID automático
 CREATE TABLE usuarios (
     id CHAR(36) PRIMARY KEY DEFAULT (UUID()),
     nombre VARCHAR(100) NOT NULL,
@@ -10,7 +9,6 @@ CREATE TABLE usuarios (
     rol ENUM('administrador', 'docente') NOT NULL
 );
 
--- Cursos con UUID automático
 CREATE TABLE cursos (
     id CHAR(36) PRIMARY KEY DEFAULT (UUID()),
     nombre VARCHAR(100) NOT NULL,
@@ -21,14 +19,12 @@ CREATE TABLE cursos (
     FOREIGN KEY (docente_id) REFERENCES usuarios(id)
 );
 
--- Estudiantes con UUID automático
 CREATE TABLE estudiantes (
     id CHAR(36) PRIMARY KEY DEFAULT (UUID()),
     nombre VARCHAR(100) NOT NULL,
     email VARCHAR(100) UNIQUE
 );
 
--- Matrículas con UUID automático
 CREATE TABLE matriculas (
     id CHAR(36) PRIMARY KEY DEFAULT (UUID()),
     estudiante_id CHAR(36) NOT NULL,
@@ -38,8 +34,7 @@ CREATE TABLE matriculas (
     UNIQUE(estudiante_id, curso_id)
 );
 
--- Inasistencias con UUID automático
-CREATE TABLE inasistencias (
+CREATE TABLE registro_asistencias (
     id CHAR(36) PRIMARY KEY DEFAULT (UUID()),
     estudiante_id CHAR(36) NOT NULL,
     curso_id CHAR(36) NOT NULL,
