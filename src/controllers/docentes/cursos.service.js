@@ -1,24 +1,39 @@
 import { pool } from '../../database/connection.js';
-import {randomUUID} from 'node:crypto'
-export const getCursoByIdWithEstudiantes = (curso_id) => {
-    return pool.query(
+import { randomUUID } from 'node:crypto'
+
+
+export const getCursoByIdWithEstudiantes = async (curso_id) => {
+    const fechaHoyColombia = new Date().toLocaleDateString('en-CA', {
+        timeZone: 'America/Bogota',
+    }); 
+
+    const [rows] = await pool.execute(
         `SELECT 
-            c.id AS curso_id,
-            c.nombre AS curso_nombre,
-            c.horario,
-            c.fecha_inicio,
-            c.fecha_fin,
-            c.docente_id,
-            e.id AS estudiante_id,
-            e.nombre AS estudiante_nombre,
-            e.email AS estudiante_email
-        FROM cursos c
-        INNER JOIN matriculas m ON c.id = m.curso_id
-        INNER JOIN estudiantes e ON m.estudiante_id = e.id
-        WHERE c.id = ?`,
-        [curso_id]
+        c.id AS curso_id,
+        c.nombre AS curso_nombre,
+        c.horario,
+        c.fecha_inicio,
+        c.fecha_fin,
+        c.docente_id,
+
+        e.id AS estudiante_id,
+        e.nombre AS estudiante_nombre,
+        e.email AS estudiante_email,
+
+        ra.tipo AS tipo_asistencia
+
+     FROM cursos c
+     INNER JOIN matriculas m ON c.id = m.curso_id
+     INNER JOIN estudiantes e ON m.estudiante_id = e.id
+     LEFT JOIN registro_asistencias ra
+        ON ra.estudiante_id = e.id AND ra.curso_id = c.id AND ra.fecha = ?
+     WHERE c.id = ?`,
+        [fechaHoyColombia, curso_id]
     );
+
+    return rows;
 };
+
 
 export const getCursosByDocenteId = (docente_id) => {
     return pool.query(
@@ -110,6 +125,7 @@ export const getCoursesAndStudentsByTeacher = (docente_id) => {
     );
 };
 
+
 export async function registrarAsistencia({ estudiante_id, curso_id, fecha, tipo, justificada = 0 }) {
     const id = randomUUID();
 
@@ -119,14 +135,21 @@ export async function registrarAsistencia({ estudiante_id, curso_id, fecha, tipo
     );
 
     if (existing.length > 0) {
-        // Ya existe asistencia registrada para ese estudiante ese día
-        return;
-    }
+        const registroId = existing[0].id;
 
-    await pool.execute(
-        `INSERT INTO registro_asistencias (id, estudiante_id, curso_id, fecha, tipo, justificada)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [id, estudiante_id, curso_id, fecha, tipo, justificada]
-    );
+        await pool.execute(
+            `UPDATE registro_asistencias 
+             SET tipo = ?, justificada = ?
+             WHERE id = ?`,
+            [tipo, justificada, registroId]
+        );
+    } else {
+        await pool.execute(
+            `INSERT INTO registro_asistencias (id, estudiante_id, curso_id, fecha, tipo, justificada)
+             VALUES (?, ?, ?, ?, ?, ?)`,
+            [id, estudiante_id, curso_id, fecha, tipo, justificada]
+        );
+    }
 }
+
 

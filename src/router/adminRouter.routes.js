@@ -6,10 +6,8 @@ import { matricularEstudiante } from "../controllers/estudiantes/estudiantes.con
 
 const adminRouter = Router()
 
+adminRouter.get("/auth", authenticate, isAdmin, (req, res) => {res.sendStatus(200)})
 adminRouter.post("/crearCurso", authenticate, isAdmin, crearCursoController)
-adminRouter.get("/auth", authenticate, isAdmin, (req, res) => {
-    res.sendStatus(200);
-})
 adminRouter.post("/registrarEstudiante", authenticate, isAdmin, matricularEstudiante)
 
 export default adminRouter

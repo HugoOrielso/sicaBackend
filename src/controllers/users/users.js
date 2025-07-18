@@ -39,7 +39,6 @@ export async function newUser(req, res) {
 
 export async function login(req, res) {
     const { email, password } = req.body;
-    
 
     if (!email || !password) {
         return res.status(400).json({ status: "error", message: 'Faltan datos por enviar' });
@@ -78,7 +77,6 @@ export async function login(req, res) {
         });
 
     } catch (error) {
-        console.error('[ERROR login]', error);
         return res.status(500).json({ status: "error", message: 'Error interno del servidor' });
     }
 }

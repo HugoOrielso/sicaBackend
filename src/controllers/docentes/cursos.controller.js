@@ -9,17 +9,47 @@ export const getCursosConEstudiantesByIdController = async (req, res) => {
             return res.status(400).json({ status: 'error', message: 'Datos incompletos' });
         }
 
-        const [curso] = await getCursoByIdWithEstudiantes(curso_id);
+        const rows = await getCursoByIdWithEstudiantes(curso_id);
 
-        if (!curso?.length) {
+        if (!rows.length) {
             return res.status(404).json({ status: 'error', message: 'Curso no encontrado' });
         }
 
-        if (curso[0].docente_id !== docente_id) {
+        if (rows[0].docente_id !== docente_id) {
             return res.status(403).json({ status: 'error', message: 'Acceso denegado: no eres el docente de este curso' });
         }
 
-        return res.status(200).json({ status: 'ok', curso: curso[0] });
+        const estudiantes = [];
+        const conteo = {
+            asistencia: 0,
+            inasistencia: 0,
+            retraso: 0,
+        };
+
+        for (const row of rows) {
+            estudiantes.push({
+                estudiante_id: row.estudiante_id,
+                nombre: row.estudiante_nombre,
+                email: row.estudiante_email,
+                tipo_asistencia: row.tipo_asistencia || null,
+            });
+
+            if (row.tipo_asistencia) {
+                conteo[row.tipo_asistencia] += 1;
+            }
+        }
+
+        const curso = {
+            curso_id: rows[0].curso_id,
+            curso_nombre: rows[0].curso_nombre,
+            horario: rows[0].horario,
+            fecha_inicio: rows[0].fecha_inicio,
+            fecha_fin: rows[0].fecha_fin,
+            estudiantes,
+            asistencia_hoy: conteo,
+        };
+
+        return res.status(200).json({ status: 'ok', curso });
     } catch (error) {
         return res.status(500).json({ status: 'error', message: 'Error interno del servidor' });
     }
@@ -74,8 +104,6 @@ export const getAssistanceStatsController = async (req, res) => {
         }
 
         const [result] = await getStatsOfAssistance(docente_id);
-        console.log(result);
-
 
         if (!result.length) {
             return res.status(204).json({ status: 'error', message: 'No hay registros de asistencia' });
@@ -83,7 +111,6 @@ export const getAssistanceStatsController = async (req, res) => {
 
         return res.status(200).json({ status: 'ok', estadisticas: result });
     } catch (error) {
-        console.error('[ERROR getAssistanceStatsController]', error);
         return res.status(500).json({ status: 'error', message: 'Error interno del servidor' });
     }
 };
@@ -125,7 +152,6 @@ export const getAssistanceStatsByCursoController = async (req, res) => {
         return res.status(200).json({ status: 'ok', estadisticas: agrupado });
 
     } catch (error) {
-        console.error('[ERROR getAssistanceStatsByCursoController]', error);
         return res.status(500).json({ status: 'error', message: 'Error interno del servidor' });
     }
 };
@@ -170,7 +196,6 @@ export const getCursosConEstudiantesController = async (req, res) => {
         return res.status(200).json({ status: 'ok', cursos });
 
     } catch (error) {
-        console.error('[ERROR getCursosConEstudiantesController]', error);
         return res.status(500).json({ status: 'error', message: 'Error interno al obtener los cursos con estudiantes' });
     }
 };
@@ -184,7 +209,7 @@ export const guardarAsistenciaController = async (req, res) => {
             return res.status(400).json({ status: 'error', message: 'Datos incompletos' });
         }
 
-        const fecha = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+        const fecha = new Date().toLocaleDateString('en-CA')
 
         for (const item of registros) {
             const { estudiante_id, estado } = item;
@@ -199,13 +224,12 @@ export const guardarAsistenciaController = async (req, res) => {
                 curso_id,
                 fecha,
                 tipo,
-                justificada: 0, 
+                justificada: 0,
             });
         }
 
         res.status(200).json({ status: 'ok', message: 'Asistencias registradas correctamente' });
     } catch (error) {
-        console.error('[ERROR AL GUARDAR ASISTENCIA]', error);
         res.status(500).json({ status: 'error', message: 'Error al registrar la asistencia' });
     }
 };
