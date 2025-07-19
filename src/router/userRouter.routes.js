@@ -1,10 +1,13 @@
 import { Router } from "express";
-import { login, newUser } from "../controllers/users/users.js";
+import { getHistoryController, login, newUser } from "../controllers/users/users.js";
+import { authenticate } from "../utils/jwt.js";
+
 
 const userRouter = Router()
 
 userRouter.post("/create", newUser)
 userRouter.post("/login", login)
+userRouter.get("/history", authenticate, getHistoryController)
 userRouter.post("/logout", (req, res) => {
     res.clearCookie("refreshToken", {
         httpOnly: true,

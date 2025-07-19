@@ -1,4 +1,4 @@
-import { selectUser, createUser } from './users.service.js'
+import { selectUser, createUser, getHistory } from './users.service.js'
 import { hash, compare } from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import { ACCESS_TOKEN, REFRESH_TOKEN } from '../../utils/config.js';
@@ -81,3 +81,19 @@ export async function login(req, res) {
     }
 }
 
+export async function getHistoryController(req, res) {
+    const userId = req.user.id;
+
+    try {
+        const history = await getHistory(userId);
+
+        if (history.length === 0) {
+            return res.status(204).json({ status: "ok", message: 'No hay historial de actividades' });
+        }
+
+        return res.status(200).json({ status: "ok", data: history });
+
+    } catch (error) {
+        return res.status(500).json({ status: "error", message: 'Error interno del servidor' });
+    }
+}

@@ -8,6 +8,10 @@ export const getEstudianteByEmail = (email) => {
     return pool.query('SELECT id FROM estudiantes WHERE email = ?', [email]);
 };
 
+export const getEstudianteById = (id) => {
+    return pool.query('SELECT * FROM estudiantes WHERE id = ?', [id]);
+};
+
 export const crearEstudiante = (nombre, email) => {
     return pool.query(
         'INSERT INTO estudiantes (nombre, email) VALUES (?, ?)',

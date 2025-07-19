@@ -111,9 +111,46 @@ export const registerActivity = (usuario_id, tipo, descripcion) => {
     );
 };
 
+export const getResumenGlobalAsistencias = async () => {
+    const [rows] = await pool.query(`
+        SELECT 
+            (SELECT COUNT(*) FROM cursos WHERE estado = 'activo') AS total_cursos,
+            COUNT(*) AS total_registros,
+            SUM(CASE WHEN ra.tipo = 'asistencia' THEN 1 ELSE 0 END) AS total_asistencias,
+            SUM(CASE WHEN ra.tipo = 'inasistencia' THEN 1 ELSE 0 END) AS total_inasistencias,
+            SUM(CASE WHEN ra.tipo = 'retraso' THEN 1 ELSE 0 END) AS total_retrasos,
+            ROUND(SUM(CASE WHEN ra.tipo = 'asistencia' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 2) AS porcentaje_asistencia_global,
+            ROUND(SUM(CASE WHEN ra.tipo = 'inasistencia' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 2) AS porcentaje_inasistencia_global,
+            ROUND(SUM(CASE WHEN ra.tipo = 'retraso' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 2) AS porcentaje_retraso_global
+        FROM registro_asistencias ra
+        JOIN cursos c ON ra.curso_id = c.id
+        WHERE c.estado = 'activo'
+    `);
+    return rows[0];
+};
+
+
 
 export const getTeachers = () => {
     return pool.query(
         `SELECT * FROM usuarios WHERE rol = 'docente'`,
         []);
 };
+
+export const allStudents = () => {
+    return pool.query(
+        `SELECT * FROM estudiantes`,
+        []);
+};
+
+export const estudiantesMatriculados = async () => {
+    const [rows] = await pool.query(`
+        SELECT COUNT(DISTINCT e.id) AS total_estudiantes
+        FROM estudiantes e
+        JOIN matriculas m ON e.id = m.estudiante_id
+        JOIN cursos c ON m.curso_id = c.id
+        WHERE c.estado = 'activo';
+    `);
+    return rows[0].total_estudiantes;
+};
+

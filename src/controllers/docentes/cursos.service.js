@@ -5,31 +5,44 @@ import { randomUUID } from 'node:crypto'
 export const getCursoByIdWithEstudiantes = async (curso_id) => {
     const fechaHoyColombia = new Date().toLocaleDateString('en-CA', {
         timeZone: 'America/Bogota',
-    }); 
+    });
 
     const [rows] = await pool.execute(
         `SELECT 
-        c.id AS curso_id,
-        c.nombre AS curso_nombre,
-        c.horario,
-        c.fecha_inicio,
-        c.fecha_fin,
-        c.docente_id,
-
-        e.id AS estudiante_id,
-        e.nombre AS estudiante_nombre,
-        e.email AS estudiante_email,
-
-        ra.tipo AS tipo_asistencia
-
-     FROM cursos c
-     INNER JOIN matriculas m ON c.id = m.curso_id
-     INNER JOIN estudiantes e ON m.estudiante_id = e.id
-     LEFT JOIN registro_asistencias ra
-        ON ra.estudiante_id = e.id AND ra.curso_id = c.id AND ra.fecha = ?
-     WHERE c.id = ?`,
+            c.id AS curso_id,
+            c.nombre AS curso_nombre,
+            c.horario,
+            c.fecha_inicio,
+            c.fecha_fin,
+            c.docente_id,
+            e.id AS estudiante_id,
+            e.nombre AS estudiante_nombre,
+            e.email AS estudiante_email,
+            ra.tipo AS tipo_asistencia
+        FROM cursos c
+        LEFT JOIN matriculas m ON c.id = m.curso_id
+        LEFT JOIN estudiantes e ON m.estudiante_id = e.id
+        LEFT JOIN registro_asistencias ra
+            ON ra.estudiante_id = e.id AND ra.curso_id = c.id AND ra.fecha = ?
+        WHERE c.id = ?`,
         [fechaHoyColombia, curso_id]
     );
+
+    // Asegúrate de que el curso exista aunque no tenga estudiantes
+    if (rows.length === 0) {
+        // Hacemos una segunda consulta solo para validar la existencia del curso
+        const [cursoExists] = await pool.execute('SELECT id, nombre FROM cursos WHERE id = ?', [curso_id]);
+        if (cursoExists.length === 0) {
+            throw new Error('Curso no encontrado');
+        }
+
+        // El curso existe pero no tiene estudiantes ni asistencias hoy
+        return [{
+            curso_id: cursoExists[0].id,
+            curso_nombre: cursoExists[0].nombre,
+            estudiantes: []
+        }];
+    }
 
     return rows;
 };
@@ -37,7 +50,14 @@ export const getCursoByIdWithEstudiantes = async (curso_id) => {
 
 export const getCursosByDocenteId = (docente_id) => {
     return pool.query(
-        `SELECT * FROM cursos WHERE docente_id = ?`,
+        `SELECT * FROM cursos WHERE docente_id = ? AND estado = 'activo'`,
+        [docente_id]
+    );
+};
+
+export const getCursosById = (docente_id) => {
+    return pool.query(
+        `SELECT * FROM cursos WHERE id = ? AND estado = 'activo'`,
         [docente_id]
     );
 };
@@ -63,19 +83,19 @@ export const getStatsOfAssistance = (docente_id) => {
 export const getStatsOfAssistanceOrderByCourse = (docente_id) => {
     return pool.query(
         `
-        SELECT 
-            c.id AS curso_id,
-            c.nombre AS nombre_curso,
-            ra.tipo,
-            ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER (PARTITION BY c.id), 2) AS porcentaje
-        FROM 
-            cursos c
-        JOIN 
-            registro_asistencias ra ON ra.curso_id = c.id
-        WHERE 
-            c.docente_id = ?
-        GROUP BY 
-            c.id, c.nombre, ra.tipo;
+            SELECT 
+                c.id AS curso_id,
+                c.nombre AS nombre_curso,
+                ra.tipo,
+                ROUND(COUNT(ra.id) * 100.0 / NULLIF(SUM(COUNT(ra.id)) OVER (PARTITION BY c.id), 0), 2) AS porcentaje
+            FROM 
+                cursos c
+            LEFT JOIN 
+                registro_asistencias ra ON ra.curso_id = c.id
+            WHERE 
+                c.docente_id = ?
+            GROUP BY 
+                c.id, c.nombre, ra.tipo;
         `,
         [docente_id]
     );

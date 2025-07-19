@@ -13,3 +13,10 @@ export async function createUser(name, email, password, rol) {
 
     return query
 }
+
+export async function getHistory(id) {
+    const [query] = await pool.query('SELECT * FROM actividades WHERE usuario_id = ? ORDER BY fecha DESC;',
+        [id])
+
+    return query
+}

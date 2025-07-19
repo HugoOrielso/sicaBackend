@@ -1,3 +1,5 @@
+import { registerActivity } from "../admin/admin.service.js";
+import { getCursoById } from "../estudiantes/estudiantes.service.js";
 import { getCoursesAndStudentsByTeacher, getCursoByIdWithEstudiantes, getCursosByDocenteId, getStatsOfAssistance, getStatsOfAssistanceOrderByCourse, getTotalStudentsByTeacher, registrarAsistencia } from "./cursos.service.js";
 
 export const getCursosConEstudiantesByIdController = async (req, res) => {
@@ -27,15 +29,17 @@ export const getCursosConEstudiantesByIdController = async (req, res) => {
         };
 
         for (const row of rows) {
-            estudiantes.push({
-                estudiante_id: row.estudiante_id,
-                nombre: row.estudiante_nombre,
-                email: row.estudiante_email,
-                tipo_asistencia: row.tipo_asistencia || null,
-            });
+            if (row.estudiante_id) { 
+                estudiantes.push({
+                    estudiante_id: row.estudiante_id,
+                    nombre: row.estudiante_nombre,
+                    email: row.estudiante_email,
+                    tipo_asistencia: row.tipo_asistencia || null,
+                });
 
-            if (row.tipo_asistencia) {
-                conteo[row.tipo_asistencia] += 1;
+                if (row.tipo_asistencia) {
+                    conteo[row.tipo_asistencia] += 1;
+                }
             }
         }
 
@@ -129,7 +133,6 @@ export const getAssistanceStatsByCursoController = async (req, res) => {
             return res.status(204).json({ status: 'error', message: 'No hay registros de asistencia por curso' });
         }
 
-        // Agrupar por curso
         const agrupado = result.reduce((acc, row) => {
             let curso = acc.find(c => c.curso_id === row.curso_id);
             if (!curso) {
@@ -170,7 +173,6 @@ export const getCursosConEstudiantesController = async (req, res) => {
             return res.status(204).json({ status: 'error', message: 'No hay cursos registrados para este docente' });
         }
 
-        // Agrupar por curso
         const cursos = result.reduce((acc, row) => {
             let curso = acc.find(c => c.curso_id === row.curso_id);
             if (!curso) {
@@ -202,6 +204,10 @@ export const getCursosConEstudiantesController = async (req, res) => {
 
 
 export const guardarAsistenciaController = async (req, res) => {
+    if (!req.user || req.user.rol !== 'docente') {
+        return res.status(403).json({ status: 'error', message: 'Acceso denegado' });
+    }
+    console.log(req.user.id)
     try {
         const { curso_id, registros } = req.body;
 
@@ -227,9 +233,22 @@ export const guardarAsistenciaController = async (req, res) => {
                 justificada: 0,
             });
         }
+        const [curso] = await getCursoById(curso_id);
+        console.log(curso[0].nombre);
+
+        if (!curso) {
+            return res.status(404).json({ status: 'error', message: 'Curso no encontrado' });
+        }
+
+        if (req.user.id) {
+            await registerActivity(req.user.id, 'Asistencia guardada', `Se ha registrado la asistencia para el curso: ${curso[0].nombre}`);
+        }
+
 
         res.status(200).json({ status: 'ok', message: 'Asistencias registradas correctamente' });
     } catch (error) {
+        console.log(error);
+
         res.status(500).json({ status: 'error', message: 'Error al registrar la asistencia' });
     }
 };
