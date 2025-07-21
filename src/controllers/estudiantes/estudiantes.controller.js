@@ -79,8 +79,6 @@ export const matricularEstudianteACursoController = async (req, res) => {
             message: 'Matrícula registrada correctamente',
         });
     } catch (error) {
-        console.log(error);
-        
         return res.status(500).json({
             status: 'error',
             message: 'Error interno al matricular estudiante',

@@ -1,3 +1,5 @@
+import { Resend } from 'resend';
+const resend = new Resend('re_cbY3B6aa_8Fi5ugw7b9DGnFkPzSZw3W5X');
 import { registerActivity } from "../admin/admin.service.js";
 import { getCursoById } from "../estudiantes/estudiantes.service.js";
 import { getCoursesAndStudentsByTeacher, getCursoByIdWithEstudiantes, getCursosByDocenteId, getStatsOfAssistance, getStatsOfAssistanceOrderByCourse, getTotalStudentsByTeacher, registrarAsistencia } from "./cursos.service.js";
@@ -29,7 +31,7 @@ export const getCursosConEstudiantesByIdController = async (req, res) => {
         };
 
         for (const row of rows) {
-            if (row.estudiante_id) { 
+            if (row.estudiante_id) {
                 estudiantes.push({
                     estudiante_id: row.estudiante_id,
                     nombre: row.estudiante_nombre,
@@ -159,6 +161,27 @@ export const getAssistanceStatsByCursoController = async (req, res) => {
     }
 };
 
+const enviarAlertaInasistencias = async (cursos) => {
+    for (const curso of cursos) {
+        for (const estudiante of curso.estudiantes) {
+            if (estudiante.inasistencias >= 1) {
+                const { data, error } = await resend.emails.send({
+                    from: 'Acme <onboarding@resend.dev>',
+                    to: ['orielso.lozano15@gmail.com'], 
+                    subject: `⚠️ Alerta de inasistencias: ${estudiante.nombre}`,
+                    html: `
+                        <p><strong>${estudiante.nombre}</strong> ha superado el límite de inasistencias.</p>
+                        <p>Curso: <strong>${curso.nombre_curso}</strong></p>
+                        <p>Total de inasistencias: <strong>${estudiante.inasistencias}</strong></p>
+                    `,
+                });
+
+
+            }
+        }
+    }
+};
+
 export const getCursosConEstudiantesController = async (req, res) => {
     try {
         const docente_id = req.user?.id;
@@ -188,12 +211,17 @@ export const getCursosConEstudiantesController = async (req, res) => {
                 curso.estudiantes.push({
                     estudiante_id: row.estudiante_id,
                     nombre: row.nombre_estudiante,
-                    email: row.email_estudiante
+                    email: row.email_estudiante,
+                    inasistencias: row.inasistencias ?? 0,
+                    asistencia_hoy: row.asistencia_hoy || 'No registrado'
                 });
             }
 
+
             return acc;
         }, []);
+
+        // await enviarAlertaInasistencias(cursos);
 
         return res.status(200).json({ status: 'ok', cursos });
 
@@ -207,7 +235,6 @@ export const guardarAsistenciaController = async (req, res) => {
     if (!req.user || req.user.rol !== 'docente') {
         return res.status(403).json({ status: 'error', message: 'Acceso denegado' });
     }
-    console.log(req.user.id)
     try {
         const { curso_id, registros } = req.body;
 
@@ -234,7 +261,6 @@ export const guardarAsistenciaController = async (req, res) => {
             });
         }
         const [curso] = await getCursoById(curso_id);
-        console.log(curso[0].nombre);
 
         if (!curso) {
             return res.status(404).json({ status: 'error', message: 'Curso no encontrado' });
@@ -247,8 +273,6 @@ export const guardarAsistenciaController = async (req, res) => {
 
         res.status(200).json({ status: 'ok', message: 'Asistencias registradas correctamente' });
     } catch (error) {
-        console.log(error);
-
         res.status(500).json({ status: 'error', message: 'Error al registrar la asistencia' });
     }
 };

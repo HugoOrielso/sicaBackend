@@ -121,30 +121,44 @@ export const getTotalStudentsByTeacher = (docente_id) => {
         [docente_id]
     );
 };
+
 export const getCoursesAndStudentsByTeacher = (docente_id) => {
     return pool.query(
         `
-            SELECT 
-                c.id AS curso_id,
-                c.nombre AS nombre_curso,
-                e.id AS estudiante_id,
-                e.nombre AS nombre_estudiante,
-                e.email AS email_estudiante
-            FROM 
-                cursos c
-            LEFT JOIN 
-                matriculas m ON m.curso_id = c.id
-            LEFT JOIN 
-                estudiantes e ON e.id = m.estudiante_id
-            WHERE 
-                c.docente_id = ?
-            ORDER BY 
-                c.nombre, e.nombre;
+        SELECT 
+            c.id AS curso_id,
+            c.nombre AS nombre_curso,
+            e.id AS estudiante_id,
+            e.nombre AS nombre_estudiante,
+            e.email AS email_estudiante,
+            COUNT(CASE WHEN a.tipo = 'inasistencia' THEN 1 END) AS inasistencias,
+            (
+                SELECT tipo
+                FROM registro_asistencias a2
+                WHERE 
+                    a2.estudiante_id = e.id 
+                    AND a2.curso_id = c.id 
+                    AND DATE(a2.fecha) = CURDATE()
+                LIMIT 1
+            ) AS asistencia_hoy
+        FROM 
+            cursos c
+        LEFT JOIN 
+            matriculas m ON m.curso_id = c.id
+        LEFT JOIN 
+            estudiantes e ON e.id = m.estudiante_id
+        LEFT JOIN 
+            registro_asistencias  a ON a.estudiante_id = e.id AND a.curso_id = c.id
+        WHERE 
+            c.docente_id = ?
+        GROUP BY 
+            c.id, c.nombre, e.id, e.nombre, e.email
+        ORDER BY 
+            c.nombre, e.nombre;
         `,
         [docente_id]
     );
 };
-
 
 export async function registrarAsistencia({ estudiante_id, curso_id, fecha, tipo, justificada = 0 }) {
     const id = randomUUID();

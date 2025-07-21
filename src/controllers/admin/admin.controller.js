@@ -146,3 +146,4 @@ export async function totalStudentsController(req, res) {
         res.status(500).json({ status: "error", message: "Error al contar estudiantes activos" });
     }
 }
+
