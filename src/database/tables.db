@@ -16,6 +16,7 @@ CREATE TABLE cursos (
     fecha_inicio DATE NOT NULL,
     fecha_fin DATE NOT NULL,
     docente_id CHAR(36) NOT NULL,
+    estado varchar(50)
     FOREIGN KEY (docente_id) REFERENCES usuarios(id)
 );
 
@@ -38,12 +39,12 @@ CREATE TABLE registro_asistencias (
     id CHAR(36) PRIMARY KEY DEFAULT (UUID()),
     estudiante_id CHAR(36) NOT NULL,
     curso_id CHAR(36) NOT NULL,
-    fecha DATE NOT NULL,
-    justificada BOOLEAN DEFAULT FALSE,
+    fecha DATE NOT NULL,    
+    justificada TINYINT(1),
+    tipo ENUM('asistencia', 'inasistencia', 'retraso') NOT NULL,
     FOREIGN KEY (estudiante_id) REFERENCES estudiantes(id),
     FOREIGN KEY (curso_id) REFERENCES cursos(id)
 );
-
 
 CREATE TABLE actividades (
   id CHAR(36) PRIMARY KEY DEFAULT (UUID()),

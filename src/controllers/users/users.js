@@ -33,6 +33,8 @@ export async function newUser(req, res) {
         return res.status(500).json({ status: "error", message: 'No se pudo crear el usuario' });
 
     } catch (error) {
+        console.log(error);
+        
         return res.status(500).json({ status: "error", message: 'Error interno del servidor' });
     }
 }
