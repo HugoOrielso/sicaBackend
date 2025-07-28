@@ -1,8 +1,9 @@
 import { Resend } from 'resend';
-const resend = new Resend('');
+const resend = new Resend(RESEND_KEY);
 import { registerActivity } from "../admin/admin.service.js";
 import { getCursoById } from "../estudiantes/estudiantes.service.js";
 import { getAsistenciaHistoricaCurso, getCoursesAndStudentsByTeacher, getCursoByIdWithEstudiantes, getCursosByDocenteId, getStatsOfAssistance, getStatsOfAssistanceOrderByCourse, getTotalStudentsByTeacher, registrarAsistencia } from "./cursos.service.js";
+import { RESEND_KEY } from '../../utils/config.js';
 
 export const getCursosConEstudiantesByIdController = async (req, res) => {
     try {
